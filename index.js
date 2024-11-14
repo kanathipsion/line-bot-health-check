@@ -1,5 +1,6 @@
 const express = require('express');
 const { Client, middleware } = require('@line/bot-sdk');
+const axios = require('axios');
 
 const app = express();
 
@@ -11,6 +12,9 @@ const config = {
 
 // Initialize LINE SDK client
 const client = new Client(config);
+
+// Google Apps Script URL (จาก Config Vars ของ Heroku)
+const googleScriptUrl = process.env.GOOGLE_SCRIPT_URL;
 
 // Webhook handling
 app.post('/webhook', middleware(config), (req, res) => {
@@ -33,17 +37,32 @@ function handleEvent(event) {
       const pressureLevel = parseInt(pressureMatch[1]);
 
       let replyMessage;
+      let healthStatus;
 
       // Conditions for responses
       if (sugarLevel <= 100 && pressureLevel <= 120) {
         replyMessage = 'ค่าของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไป';
+        healthStatus = 'ปกติ';
       } else if (sugarLevel > 100 && pressureLevel <= 120) {
         replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นควรไปหาหมอนะ';
+        healthStatus = 'น้ำตาลสูง';
       } else if (sugarLevel <= 100 && pressureLevel > 120) {
         replyMessage = 'ค่าความดันของคุณสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็มมั้งได้แล้ว ถ้ามีอาการผิดปกติหรือควรไปหาหมอนะ';
+        healthStatus = 'ความดันสูง';
       } else if (sugarLevel > 100 && pressureLevel > 120) {
         replyMessage = 'ค่าน้ำตาลแล้วก็ค่าความดันของคุณสูงหว่าปกติจังแล้วนิ แนะนำให้ออกกำลังกายมั้งนะเติ้น ควบคุมอาหาร และไปหาหมอเพื่อตรวจสอบเพิ่มเติมกันได้ปลอดภัย';
+        healthStatus = 'น้ำตาลและความดันสูง';
       }
+
+      // บันทึกข้อมูลลง Google Sheets ผ่าน Google Apps Script
+      axios.post(googleScriptUrl, {
+        userId: event.source.userId,
+        displayName: event.source.displayName || 'unknown',
+        sugarLevel: sugarLevel,
+        pressureLevel: pressureLevel,
+        healthStatus: healthStatus,
+        advice: replyMessage,
+      });
 
       // Reply to user
       return client.replyMessage(event.replyToken, {
