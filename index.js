@@ -37,33 +37,31 @@ function handleEvent(event) {
       const pressureLevel = parseInt(pressureMatch[1]);
 
       let replyMessage = "";
-      let healthStatus = "";
+      let sugarStatus = "";
+      let pressureStatus = "";
 
-      // Check each condition and assign a specific message
-      if (sugarLevel <= 100 && pressureLevel <= 120) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
-        healthStatus = 'ปกติ';
-      } else if (sugarLevel > 100 && pressureLevel <= 120) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้แล้วตะ ถ้าไม่ดีขึ้นแขบไปหาหมอนะ และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
-        healthStatus = 'น้ำตาลสูง';
-      } else if (sugarLevel < 70 && pressureLevel <= 120) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
-        healthStatus = 'น้ำตาลต่ำ';
-      } else if (sugarLevel <= 100 && pressureLevel > 120) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติแขบไปหาหมอนะ';
-        healthStatus = 'ความดันสูง';
-      } else if (sugarLevel <= 100 && pressureLevel < 60) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ และ ค่าความดันต่ำ ควรนั่งพักและดื่มน้ำ ถ้าไม่ดีขึ้นควรไปหาหมอได้แล้ว';
-        healthStatus = 'ความดันต่ำ';
-      } else if (sugarLevel > 100 && pressureLevel > 120) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นแขบไปหาหมอนะ และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติควรไปหาหมอนะ';
-        healthStatus = 'น้ำตาลและความดันสูง';
-      } else if (sugarLevel > 100 && pressureLevel < 60) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นควรไปหาหมอนะ และ ค่าความดันต่ำ ควรนั่งพักและดื่มน้ำ ถ้าไม่ดีขึ้นแขบไปหาหมอได้แล้ว';
-        healthStatus = 'น้ำตาลสูงและความดันต่ำ';
-      } else if (sugarLevel < 70 && pressureLevel > 120) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติควรไปหาหมอนะ';
-        healthStatus = 'น้ำตาลต่ำและความดันสูง';
+      // Determine sugar status
+      if (sugarLevel < 70) {
+        sugarStatus = "น้ำตาลต่ำ";
+        replyMessage += 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว';
+      } else if (sugarLevel > 100) {
+        sugarStatus = "น้ำตาลสูง";
+        replyMessage += 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นแขบไปหาหมอนะ';
+      } else {
+        sugarStatus = "ปกติ";
+        replyMessage += 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ';
+      }
+
+      // Determine pressure status
+      if (pressureLevel < 60) {
+        pressureStatus = "ความดันต่ำ";
+        replyMessage += ' และ ค่าความดันต่ำ ควรนั่งพักและดื่มน้ำ ถ้าไม่ดีขึ้นควรไปหาหมอได้แล้ว';
+      } else if (pressureLevel > 120) {
+        pressureStatus = "ความดันสูง";
+        replyMessage += ' และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติแขบไปหาหมอนะ';
+      } else {
+        pressureStatus = "ปกติ";
+        replyMessage += ' และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
       }
 
       // Send data to Google Sheets
@@ -71,7 +69,8 @@ function handleEvent(event) {
         userId: event.source.userId,
         sugarLevel: sugarLevel,
         pressureLevel: pressureLevel,
-        healthStatus: healthStatus,
+        sugarStatus: sugarStatus,
+        pressureStatus: pressureStatus,
         advice: replyMessage,
         timestamp: new Date().toLocaleString(),
       }).then(() => {
