@@ -54,6 +54,9 @@ function handleEvent(event) {
         healthStatus = 'น้ำตาลและความดันสูง';
       }
 
+      // Include userId in the response message
+      const fullReplyMessage = `ผู้ใช้: ${event.source.userId}\n${replyMessage}`;
+
       // Send data to Google Sheets
       axios.post(googleScriptUrl, {
         userId: event.source.userId,
@@ -67,10 +70,10 @@ function handleEvent(event) {
         console.error('Error sending data to Google Sheets:', error);
       });
 
-      // Reply to user
+      // Reply to user with userId and advice
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: replyMessage,
+        text: fullReplyMessage,
       });
     } else {
       // Message format error
