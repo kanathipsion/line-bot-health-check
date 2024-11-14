@@ -63,10 +63,10 @@ function handleEvent(event) {
       // Send data to Google Sheets via Google Apps Script Web App URL
       axios.post(process.env.GOOGLE_SCRIPT_URL, {
         userId: event.source.userId,
-        sugarLevel,
-        pressureLevel,
-        sugarStatus,
-        pressureStatus,
+        sugarLevel: sugarLevel || 'unknown',
+        pressureLevel: pressureLevel || 'unknown',
+        sugarStatus: sugarStatus || 'unknown',
+        pressureStatus: pressureStatus || 'unknown',
         advice: replyMessage,
         timestamp: new Date().toLocaleString(),
       }).catch(error => {
