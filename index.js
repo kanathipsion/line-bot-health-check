@@ -1,6 +1,5 @@
 const express = require('express');
 const { Client, middleware } = require('@line/bot-sdk');
-const axios = require('axios');
 
 const app = express();
 
@@ -9,9 +8,6 @@ const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
 };
-
-// Google Apps Script URL
-const googleScriptUrl = process.env.GOOGLE_SCRIPT_URL;
 
 // Initialize LINE SDK client
 const client = new Client(config);
@@ -36,50 +32,31 @@ function handleEvent(event) {
       const sugarLevel = parseInt(sugarMatch[1]);
       const pressureLevel = parseInt(pressureMatch[1]);
 
-      let replyMessage;
-      let healthStatus;
+      let replyMessage = "";
 
-      // Conditions for responses
-      if (sugarLevel < 70) {
-        replyMessage = 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว';
-        healthStatus = 'น้ำตาลต่ำ';
-      } else if (pressureLevel < 60) {
-        replyMessage = 'ค่าความดันต่ำ และแนะนำให้นั่งพักและดื่มน้ำ ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว';
-        healthStatus = 'ความดันต่ำ';
-      } else if (sugarLevel <= 100 && pressureLevel <= 120) {
-        replyMessage = 'ค่าของคุณอยู่ในเกณฑ์ปกติ ผ่าน! โปรดรักษาสุขภาพให้ดีต่อไป';
-        healthStatus = 'ปกติ';
+      // Check each condition and assign a specific message
+      if (sugarLevel <= 100 && pressureLevel <= 120) {
+        replyMessage = 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
       } else if (sugarLevel > 100 && pressureLevel <= 120) {
-        replyMessage = 'ค่าน้ำตาลของคุณสูงกว่าปกติ ควรออกกำลังกายและควบคุมอาหาร หากไม่ดีขึ้นควรไปพบแพทย์';
-        healthStatus = 'น้ำตาลสูง';
+        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้แล้วตะ ถ้าไม่ดีขึ้นแขบไปหาหมอนะ และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
+      } else if (sugarLevel < 70 && pressureLevel <= 120) {
+        replyMessage = 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
       } else if (sugarLevel <= 100 && pressureLevel > 120) {
-        replyMessage = 'ค่าความดันของคุณสูงกว่าปกติ ควรออกกำลังกายและลดอาหารเค็ม หากมีอาการผิดปกติควรไปพบแพทย์';
-        healthStatus = 'ความดันสูง';
+        replyMessage = 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติแขบไปหาหมอนะ';
+      } else if (sugarLevel <= 100 && pressureLevel < 60) {
+        replyMessage = 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ และ ค่าความดันต่ำ ควรนั่งพักและดื่มน้ำ ถ้าไม่ดีขึ้นควรไปหาหมอได้แล้ว';
       } else if (sugarLevel > 100 && pressureLevel > 120) {
-        replyMessage = 'ค่าน้ำตาลและความดันของคุณสูงกว่าปกติ แนะนำให้ออกกำลังกาย ควบคุมอาหาร และไปพบแพทย์เพื่อความปลอดภัย';
-        healthStatus = 'น้ำตาลและความดันสูง';
+        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นแขบไปหาหมอนะ และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติควรไปหาหมอนะ';
+      } else if (sugarLevel > 100 && pressureLevel < 60) {
+        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นควรไปหาหมอนะ และ ค่าความดันต่ำ ควรนั่งพักและดื่มน้ำ ถ้าไม่ดีขึ้นแขบไปหาหมอได้แล้ว';
+      } else if (sugarLevel < 70 && pressureLevel > 120) {
+        replyMessage = 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติควรไปหาหมอนะ';
       }
 
-      // Include userId in the response message
-      const fullReplyMessage = `ผู้ใช้: ${event.source.userId}\n${replyMessage}`;
-
-      // Send data to Google Sheets
-      axios.post(googleScriptUrl, {
-        userId: event.source.userId,
-        sugarLevel: sugarLevel,
-        pressureLevel: pressureLevel,
-        healthStatus: healthStatus,
-        advice: replyMessage,
-      }).then(() => {
-        console.log('Data sent to Google Sheets');
-      }).catch(error => {
-        console.error('Error sending data to Google Sheets:', error);
-      });
-
-      // Reply to user with userId and advice
+      // Reply to user with the specific message
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: fullReplyMessage,
+        text: replyMessage,
       });
     } else {
       // Message format error
