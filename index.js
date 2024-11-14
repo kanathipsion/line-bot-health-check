@@ -1,94 +1,68 @@
-require('dotenv').config();
 const express = require('express');
 const { Client, middleware } = require('@line/bot-sdk');
 
 const app = express();
 
-// ตั้งค่า LINE Bot
+// LINE Bot configurations
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
 };
 
+// Initialize LINE SDK client
 const client = new Client(config);
 
-// กำหนดเส้นทางหลัก (Root route)
-app.get('/', (req, res) => {
-  res.send('Hello! LINE Bot Server is running.');
-});
-
-// Webhook Endpoint สำหรับรับข้อความจาก LINE
+// Webhook handling
 app.post('/webhook', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
-    .then(() => res.status(200).end())
-    .catch(err => {
-      console.error(err);
-      res.status(500).end();
-    });
+    .then(result => res.json(result))
+    .catch(err => res.status(500).end());
 });
 
-// ฟังก์ชันจัดการ Event ที่ได้รับจากผู้ใช้
+// Function to handle LINE messages
 function handleEvent(event) {
   if (event.type === 'message' && event.message.type === 'text') {
     const userMessage = event.message.text;
 
-    // ตรวจสอบว่าข้อความตรงกับรูปแบบ "ค่าน้ำตาล XX ค่าความดัน YY" หรือไม่
-    const match = userMessage.match(/ค่าน้ำตาล (\d+) ค่าความดัน (\d+)/);
-    if (match) {
-      const sugarLevel = parseInt(match[1], 10);
-      const bloodPressure = parseInt(match[2], 10);
-      
-      // ประเมินสุขภาพโดยใช้ฟังก์ชัน evaluateHealth
-      const advice = evaluateHealth(sugarLevel, bloodPressure);
-      const replyMessage = { type: 'text', text: advice };
+    // Extract values from message (example: "ค่าน้ำตาล 90 ค่าความดัน 110")
+    const sugarMatch = userMessage.match(/ค่าน้ำตาล\s*(\d+)/);
+    const pressureMatch = userMessage.match(/ค่าความดัน\s*(\d+)/);
 
-      // ตอบกลับผู้ใช้ตามคำแนะนำที่ได้จากการประเมิน
-      return client.replyMessage(event.replyToken, replyMessage);
+    if (sugarMatch && pressureMatch) {
+      const sugarLevel = parseInt(sugarMatch[1]);
+      const pressureLevel = parseInt(pressureMatch[1]);
+
+      let replyMessage;
+
+      // Conditions for responses
+      if (sugarLevel <= 100 && pressureLevel <= 120) {
+        replyMessage = 'ค่าของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไป';
+      } else if (sugarLevel > 100 && pressureLevel <= 120) {
+        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นควรไปหาหมอนะ';
+      } else if (sugarLevel <= 100 && pressureLevel > 120) {
+        replyMessage = 'ค่าความดันของคุณสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็มมั้งได้แล้ว ถ้ามีอาการผิดปกติหรือควรไปหาหมอนะ';
+      } else if (sugarLevel > 100 && pressureLevel > 120) {
+        replyMessage = 'ค่าน้ำตาลแล้วก็ค่าความดันของคุณสูงหว่าปกติจังแล้วนิ แนะนำให้ออกกำลังกายมั้งนะเติ้น ควบคุมอาหาร และไปหาหมอเพื่อตรวจสอบเพิ่มเติมกันได้ปลอดภัย';
+      }
+
+      // Reply to user
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: replyMessage,
+      });
     } else {
-      // กรณีที่ข้อความไม่ตรงตามรูปแบบที่ต้องการ (ไม่มีการตอบกลับ)
-      return Promise.resolve(null);
+      // Message format error
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'กรุณาพิมพ์ข้อมูลในรูปแบบ: "ค่าน้ำตาล XX ค่าความดัน YY" (เช่น "ค่าน้ำตาล 90 ค่าความดัน 120")',
+      });
     }
   }
   return Promise.resolve(null);
 }
 
-// ฟังก์ชันประเมินสุขภาพและให้คำแนะนำ
-function evaluateHealth(sugarLevel, bloodPressure) {
-  let advice = 'ผลการประเมินสุขภาพของคุณ:\n';
-  let isNormal = true;
-
-  // ตรวจสอบค่าน้ำตาลในเลือด
-  if (sugarLevel > 100) {
-    advice += 'ค่าน้ำตาลของคุณสูงเกินไป ควรควบคุมน้ำตาลและออกกำลังกายบ้าง\n';
-    isNormal = false;
-  } else if (sugarLevel < 70) {
-    advice += 'ค่าน้ำตาลของคุณต่ำเกินไป ควรบริโภคอาหารที่มีน้ำตาลในปริมาณที่เหมาะสม\n';
-    isNormal = false;
-  } else {
-    advice += 'ค่าน้ำตาลของคุณอยู่ในเกณฑ์ปกติ\n';
-  }
-
-  // ตรวจสอบค่าความดันโลหิต
-  if (bloodPressure > 120) {
-    advice += 'ค่าความดันของคุณสูง ควรออกกำลังกายและพบแพทย์ถ้ามีอาการป่วย\n';
-    isNormal = false;
-  } else if (bloodPressure < 90) {
-    advice += 'ค่าความดันของคุณต่ำ ควรพักผ่อนและพบแพทย์ถ้ามีอาการเวียนหัวหรืออ่อนเพลีย\n';
-    isNormal = false;
-  } else {
-    advice += 'ค่าความดันของคุณอยู่ในเกณฑ์ปกติ\n';
-  }
-
-  // ถ้าค่าน้ำตาลและความดันอยู่ในเกณฑ์ปกติทั้งสอง
-  if (isNormal) {
-    advice += 'ดีมาก! สุขภาพของคุณอยู่ในเกณฑ์ปกติ ทำดีต่อไปนะครับ/ค่ะ!';
-  }
-
-  return advice;
-}
-
-// ตั้งค่าเซิร์ฟเวอร์ให้ฟังที่พอร์ตที่ระบุ
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Start server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server running on ${port}`);
 });
