@@ -13,9 +13,6 @@ const config = {
 // Initialize LINE SDK client
 const client = new Client(config);
 
-// Google Apps Script URL
-const googleScriptUrl = process.env.GOOGLE_SCRIPT_URL;
-
 // Webhook handling
 app.post('/webhook', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
@@ -33,56 +30,53 @@ function handleEvent(event) {
     const pressureMatch = userMessage.match(/ค่าความดัน\s*(\d+)/);
 
     if (sugarMatch && pressureMatch) {
-      const sugarLevel = parseInt(sugarMatch[1]) || "unknown";
-      const pressureLevel = parseInt(pressureMatch[1]) || "unknown";
+      const sugarLevel = parseInt(sugarMatch[1]);
+      const pressureLevel = parseInt(pressureMatch[1]);
 
-      let replyMessage = "";
-      let sugarStatus = "";
-      let pressureStatus = "";
+      let replyMessage;
+      let sugarStatus;
+      let pressureStatus;
 
-      // Determine sugar status
+      // Conditions for responses and status
       if (sugarLevel < 70) {
-        sugarStatus = "น้ำตาลต่ำ";
-        replyMessage += 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว';
+        sugarStatus = 'ต่ำ';
+        replyMessage = 'ค่าน้ำตาลของเติ้นต่ำเกินแล้วนิ และแนะนำให้รับกินอาหารที่มีน้ำตาล ถ้าไม่ดีขึ้นก็แขบไปหาหมอได้แล้ว';
       } else if (sugarLevel > 100) {
-        sugarStatus = "น้ำตาลสูง";
-        replyMessage += 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นแขบไปหาหมอนะ';
+        sugarStatus = 'สูง';
+        replyMessage = 'ค่าน้ำตาลของเติ้นสูงหว่าปกติจังนิ ออกกำลังกายควบคุมอาหารมั้งได้และตะ ถ้าไม่ดีขึ้นควรไปหาหมอนะ';
       } else {
-        sugarStatus = "ปกติ";
-        replyMessage += 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ';
+        sugarStatus = 'ปกติ';
+        replyMessage = 'ค่าน้ำตาลของเติ้นอยู่ในเกณฑ์ปกติ ผ่านๆ! โปรดรักษาสุขภาพให้ดีต่อไปนะครับ';
       }
 
-      // Determine pressure status
       if (pressureLevel < 60) {
-        pressureStatus = "ความดันต่ำ";
+        pressureStatus = 'ต่ำ';
         replyMessage += ' และ ค่าความดันต่ำ ควรนั่งพักและดื่มน้ำ ถ้าไม่ดีขึ้นควรไปหาหมอได้แล้ว';
       } else if (pressureLevel > 120) {
-        pressureStatus = "ความดันสูง";
+        pressureStatus = 'สูง';
         replyMessage += ' และ ค่าความดันของเติ้นสูงเกินแล้วนิ ควรออกกำลังกายแล้วก็ลดอาหารเค็ม ถ้ามีอาการผิดปกติแขบไปหาหมอนะ';
       } else {
-        pressureStatus = "ปกติ";
+        pressureStatus = 'ปกติ';
         replyMessage += ' และ ค่าความดันของเติ้นอยู่ในเกณฑ์ปกติ โปรดรักษาสุขภาพต่อไปนะครับ';
       }
 
-      // Send data to Google Sheets
-      axios.post(googleScriptUrl, {
-        timestamp: new Date().toLocaleString(),
+      // Send data to Google Sheets via Google Apps Script Web App URL
+      axios.post(process.env.GOOGLE_SCRIPT_URL, {
         userId: event.source.userId,
-        sugarLevel: sugarLevel,
-        pressureLevel: pressureLevel,
-        sugarStatus: sugarStatus || "unknown", // Default to "unknown" if not set
-        pressureStatus: pressureStatus || "unknown", // Default to "unknown" if not set
+        sugarLevel,
+        pressureLevel,
+        sugarStatus,
+        pressureStatus,
         advice: replyMessage,
-      }).then(() => {
-        console.log('Data sent to Google Sheets');
+        timestamp: new Date().toLocaleString(),
       }).catch(error => {
         console.error('Error sending data to Google Sheets:', error);
       });
 
-      // Reply to user with the specific message
+      // Reply to user
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: `ผู้ใช้: ${event.source.userId}\n${replyMessage}`,
+        text: replyMessage,
       });
     } else {
       // Message format error
