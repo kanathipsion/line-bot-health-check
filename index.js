@@ -1,28 +1,3 @@
-const express = require('express');
-const { Client, middleware } = require('@line/bot-sdk');
-const axios = require('axios');
-
-const app = express();
-
-// LINE Bot configurations
-const config = {
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.LINE_CHANNEL_SECRET,
-};
-
-// Google Apps Script URL
-const googleScriptUrl = process.env.GOOGLE_SCRIPT_URL;
-
-// Initialize LINE SDK client
-const client = new Client(config);
-
-// Webhook handling
-app.post('/webhook', middleware(config), (req, res) => {
-  Promise.all(req.body.events.map(handleEvent))
-    .then(result => res.json(result))
-    .catch(err => res.status(500).end());
-});
-
 // Function to handle LINE messages
 function handleEvent(event) {
   if (event.type === 'message' && event.message.type === 'text') {
@@ -69,8 +44,8 @@ function handleEvent(event) {
         userId: event.source.userId,
         sugarLevel: sugarLevel,
         pressureLevel: pressureLevel,
-        sugarStatus: sugarStatus,
-        pressureStatus: pressureStatus,
+        sugarStatus: sugarStatus || "unknown", // Default to "unknown" if not set
+        pressureStatus: pressureStatus || "unknown", // Default to "unknown" if not set
         advice: replyMessage,
         timestamp: new Date().toLocaleString(),
       }).then(() => {
@@ -94,9 +69,3 @@ function handleEvent(event) {
   }
   return Promise.resolve(null);
 }
-
-// Start server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server running on ${port}`);
-});
