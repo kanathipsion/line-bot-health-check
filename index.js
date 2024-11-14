@@ -10,11 +10,11 @@ const config = {
   channelSecret: process.env.LINE_CHANNEL_SECRET,
 };
 
+// Google Apps Script URL
+const googleScriptUrl = process.env.GOOGLE_SCRIPT_URL;
+
 // Initialize LINE SDK client
 const client = new Client(config);
-
-// Google Apps Script URL (จาก Config Vars ของ Heroku)
-const googleScriptUrl = process.env.GOOGLE_SCRIPT_URL;
 
 // Webhook handling
 app.post('/webhook', middleware(config), (req, res) => {
@@ -54,14 +54,17 @@ function handleEvent(event) {
         healthStatus = 'น้ำตาลและความดันสูง';
       }
 
-      // บันทึกข้อมูลลง Google Sheets ผ่าน Google Apps Script
+      // Send data to Google Sheets
       axios.post(googleScriptUrl, {
         userId: event.source.userId,
-        displayName: event.source.displayName || 'unknown',
         sugarLevel: sugarLevel,
         pressureLevel: pressureLevel,
         healthStatus: healthStatus,
         advice: replyMessage,
+      }).then(() => {
+        console.log('Data sent to Google Sheets');
+      }).catch(error => {
+        console.error('Error sending data to Google Sheets:', error);
       });
 
       // Reply to user
