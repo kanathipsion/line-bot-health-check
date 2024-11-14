@@ -1,3 +1,28 @@
+const express = require('express');
+const { Client, middleware } = require('@line/bot-sdk');
+const axios = require('axios');
+
+const app = express();
+
+// LINE Bot configurations
+const config = {
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET,
+};
+
+// Initialize LINE SDK client
+const client = new Client(config);
+
+// Google Apps Script URL
+const googleScriptUrl = process.env.GOOGLE_SCRIPT_URL;
+
+// Webhook handling
+app.post('/webhook', middleware(config), (req, res) => {
+  Promise.all(req.body.events.map(handleEvent))
+    .then(result => res.json(result))
+    .catch(err => res.status(500).end());
+});
+
 // Function to handle LINE messages
 function handleEvent(event) {
   if (event.type === 'message' && event.message.type === 'text') {
@@ -41,13 +66,13 @@ function handleEvent(event) {
 
       // Send data to Google Sheets
       axios.post(googleScriptUrl, {
+        timestamp: new Date().toLocaleString(),
         userId: event.source.userId,
         sugarLevel: sugarLevel,
         pressureLevel: pressureLevel,
         sugarStatus: sugarStatus || "unknown", // Default to "unknown" if not set
         pressureStatus: pressureStatus || "unknown", // Default to "unknown" if not set
         advice: replyMessage,
-        timestamp: new Date().toLocaleString(),
       }).then(() => {
         console.log('Data sent to Google Sheets');
       }).catch(error => {
@@ -57,7 +82,7 @@ function handleEvent(event) {
       // Reply to user with the specific message
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: replyMessage,
+        text: `ผู้ใช้: ${event.source.userId}\n${replyMessage}`,
       });
     } else {
       // Message format error
@@ -69,3 +94,9 @@ function handleEvent(event) {
   }
   return Promise.resolve(null);
 }
+
+// Start server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server running on ${port}`);
+});
