@@ -33,8 +33,8 @@ function handleEvent(event) {
     const pressureMatch = userMessage.match(/ค่าความดัน\s*(\d+)/);
 
     if (sugarMatch && pressureMatch) {
-      const sugarLevel = parseInt(sugarMatch[1]);
-      const pressureLevel = parseInt(pressureMatch[1]);
+      const sugarLevel = parseInt(sugarMatch[1]) || "unknown";
+      const pressureLevel = parseInt(pressureMatch[1]) || "unknown";
 
       let replyMessage = "";
       let sugarStatus = "";
